@@ -30,7 +30,7 @@ class bms2bmson:
 	def SaveBmson(jsondata):
 
 		try:
-			with open(sys.argv[2], "wb") as jf:
+			with open(sys.argv[2], "w") as jf:
 				jf.write(jsondata)
 			return True
 
@@ -64,7 +64,7 @@ class bms2bmson:
 
 		cnotes = {}
 		wavslen = len(self.wavHeader)
-		for i in xrange(wavslen):
+		for i in range(wavslen):
 			cnotes[self.wavHeader[i]["ID"]] = []
 				
 		for wn in self.notes:
@@ -74,7 +74,7 @@ class bms2bmson:
 			n = {}
 			n["c"] = wn["channel"] > 30
 			
-			if wn["channel"] is 1:
+			if wn["channel"] == 1:
 				n["x"] = 0
 			else:
 				n["x"] = (wn["channel"]-10) % 20
@@ -84,7 +84,7 @@ class bms2bmson:
 
 			cnotes[wn["id"]].append(n)
 		
-		for i in xrange(wavslen):
+		for i in range(wavslen):
 
 			tempdict = {}
 			tempdict["name"] = self.wavHeader[i]["name"]
@@ -119,7 +119,7 @@ class bms2bmson:
 					     "eyecatch_image"	: None,
 					     "banner_image" 	: None,
 					     "preview_music" 	: None,
-					     "resolation" 		: 240 }
+					     "resolution" 		: 240 }
 
 		self.wavHeader = []
 		self.bgaHeader = []
@@ -131,21 +131,21 @@ class bms2bmson:
 
 		for tag in tags:
 
-			value = re.search(r"#" + tag + "\s(.+)\r", bmsdata)
+			value = re.search(r"#" + tag + "\s(.+)\r", bmsdata.decode("utf-8"))
 
 			if value is not None:
 				value = value.group(1)
 			
-			if tag is "PLAYLEVEL" and value is not None:
+			if tag == "PLAYLEVEL" and value is not None:
 				self.BMSInfo["level"] = int(value)
 
-			elif tag is "BPM" and value is not None:
+			elif tag == "BPM" and value is not None:
 				self.BMSInfo["init_bpm"] = float(value)
 				
-			elif tag is "TOTAL" and value is not None:
+			elif tag == "TOTAL" and value is not None:
 				self.BMSInfo["total"] = float(value)
 
-			elif (tag is "TITLE") or (tag is "GENRE") or (tag is "ARTIST"):
+			elif (tag == "TITLE") or (tag == "GENRE") or (tag == "ARTIST"):
 				self.BMSInfo[tag.lower()] = str(value)
 
 			else:
@@ -153,36 +153,36 @@ class bms2bmson:
 
 		for tag in extags:
 
-			value = re.findall(r"#" + tag + "([0-9A-Z]{2})\s(.+)\r", bmsdata)
+			value = re.findall(r"#" + tag + "([0-9A-Z]{2})\s(.+)\r", bmsdata.decode("utf-8"))
 			
 			if value is not None:
 
 				for v, parameter in value:
 					
-					if tag is "WAV":
+					if tag == "WAV":
 						self.wavHeader.append({ "ID" : self.ToBaseX(v, 36), "name" : parameter })
 
-					elif tag is "BMP":
+					elif tag == "BMP":
 						self.bgaHeader.append({ "ID" : self.ToBaseX(v, 36), "name" : parameter })
 
-					elif tag is "BPM":
+					elif tag == "BPM":
 						self.bpmnum.append({ self.ToBaseX(v, 36) : float(parameter) })
 
-					elif tag is "STOP":
+					elif tag == "STOP":
 						self.stopnum.append({ self.ToBaseX(v, 36) : int(parameter) })
 
 		return self.BMSInfo
 
 	def ReadBMSLines(self, bmsdata):
 
-		self.lineh	= { i : 960 for i in xrange(1000) }
-		self.isln 	= { i : False for i in xrange(4096) }
+		self.lineh	= { i : 960 for i in range(1000) }
+		self.isln 	= { i : False for i in range(4096) }
 		self.lines = []
 		self.NotePre = []
 		self.linemax = 0
 		GlobalCounter = 0
 
-		bmslines = re.findall(r"#([0-9]{3})([0-9]{2}):(.+)\r", bmsdata)
+		bmslines = re.findall(r"#([0-9]{3})([0-9]{2}):(.+)\r", bmsdata.decode("utf-8"))
 
 		for measure, channel, parameter in bmslines:
 			ch = int(channel)
@@ -202,27 +202,27 @@ class bms2bmson:
 
 			else:
 				paramlen = len(parameter) / 2
-				for j in xrange(paramlen):
+				for j in range(int(paramlen)):
 					paramsub = parameter[j*2:j*2+2]
 					nn = self.ToBaseX(paramsub, 16) if ch == 3 else self.ToBaseX(paramsub, 36)
 
-					if nn is not 0:
+					if nn != 0:
 						self.linemax = max([self.linemax, ms + 1])
 						self.NotePre.append({"x" : ch, "y" : 0, "n" : nn, "ms" : ms, "mm" : paramlen, "mc" : j})
 
 		y = 0
-		for i in xrange(self.linemax + 1):
+		for i in range(self.linemax + 1):
 			self.lines.append({"y" : y})
 			y += self.lineh[i]
 
-		for i in xrange(len(self.NotePre)):
+		for i in range(len(self.NotePre)):
 			ms = self.NotePre[i]["ms"]
 			seq_y = (self.lines[ms+1]["y"] - self.lines[ms]["y"]) * self.NotePre[i]["mc"] / self.NotePre[i]["mm"]
 			self.NotePre[i]["y"] = self.lines[ms]["y"] + seq_y
 
 		self.NotePre = sorted(self.NotePre, key=lambda k: k['y'])
 
-		for i in xrange(len(self.NotePre)):
+		for i in range(len(self.NotePre)):
 			"""
 			Longnote Processor
 
@@ -321,13 +321,13 @@ class bms2bmson:
 		self.GetMetadata(bmsdata)
 		self.ReadBMSLines(bmsdata)
 		
-		print "[-] defined sound files : {}".format(len(self.wavHeader))
-		print "[-] defined bga/bgi files : {}".format(len(self.bgaHeader))
-		print "[-] total note count : {}".format(len(self.notes))
+		print ("[-] defined sound files : {}".format(len(self.wavHeader)))
+		print ("[-] defined bga/bgi files : {}".format(len(self.bgaHeader)))
+		print ("[-] total note count : {}".format(len(self.notes)))
 
 		self.ExportToJson()
 
-		print "[+] done."
+		print ("[+] done.")
 
 
 if __name__ == "__main__":
