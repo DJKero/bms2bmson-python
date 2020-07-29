@@ -1,0 +1,1 @@
+python bmx2bmson.py C:\\Path\\BMS C:\\Path\\BMSON
